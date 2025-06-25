@@ -8,8 +8,11 @@ export default async function handler(req, res) {
     return res.status(401).send('No autorizado. Inicia sesión con Spotify.');
   }
 
+  const spotifyApi = createSpotifyApi();
+  spotifyApi.setAccessToken(accessToken);
+  spotifyApi.setRefreshToken(refreshToken);
+
   const { playlist } = req.body;
-  const spotifyApi = createSpotifyApi(accessToken, refreshToken);
 
   try {
     const devices = await spotifyApi.getMyDevices();
@@ -27,6 +30,6 @@ export default async function handler(req, res) {
     res.status(200).send('Reproducción iniciada');
   } catch (e) {
     console.error('Error al reproducir:', e);
-    res.status(500).send('Error');
+    res.status(500).send('Error al reproducir música.');
   }
 }

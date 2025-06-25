@@ -9,18 +9,16 @@ export default async function handler(req, res) {
 
   try {
     const data = await spotifyApi.authorizationCodeGrant(code);
+    accessToken = data.body.access_token;
+    refreshToken = data.body.refresh_token;
 
-    accessToken = data.body['access_token'];
-    refreshToken = data.body['refresh_token'];
-
-    res.json({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-  } catch (err) {
-    console.error('Error al obtener el token:', err);
-    res.status(400).send('Error de autenticación');
+    res.json({ access_token: accessToken, refresh_token: refreshToken });
+  } catch (error) {
+    console.error('Error al obtener el token:', error);
+    res.status(400).send('Error al autenticar con Spotify');
   }
 }
 
+// Exportamos para poder usarlos en otras rutas
 export { accessToken, refreshToken };
+

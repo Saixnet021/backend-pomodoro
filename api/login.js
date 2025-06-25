@@ -1,14 +1,15 @@
-const { createSpotifyApi } = require('../spotify');
+import { createSpotifyApi } from '../spotify';
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
   const scopes = [
     'user-read-private',
     'user-read-email',
     'user-modify-playback-state',
     'user-read-playback-state',
-    'streaming',
+    'streaming'
   ];
 
-  const authorizeURL = createSpotifyApi().createAuthorizeURL(scopes, null);
+  const spotifyApi = createSpotifyApi();
+  const authorizeURL = spotifyApi.createAuthorizeURL(scopes, null);
   res.redirect(authorizeURL);
 }
