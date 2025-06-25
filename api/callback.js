@@ -1,7 +1,5 @@
 import { createSpotifyApi } from '../spotify';
-
-let accessToken = '';
-let refreshToken = '';
+import { db } from '../firebase';
 
 export default async function handler(req, res) {
   const code = req.query.code;
@@ -9,16 +7,19 @@ export default async function handler(req, res) {
 
   try {
     const data = await spotifyApi.authorizationCodeGrant(code);
-    accessToken = data.body.access_token;
-    refreshToken = data.body.refresh_token;
+    const accessToken = data.body.access_token;
+    const refreshToken = data.body.refresh_token;
 
-    res.json({ access_token: accessToken, refresh_token: refreshToken });
+    // Guarda en Firestore
+    await db.collection('tokens').doc('spotify').set({
+      accessToken,
+      refreshToken,
+      updatedAt: new Date().toISOString(),
+    });
+
+    res.json({ message: '✅ Tokens guardados correctamente en Firestore' });
   } catch (error) {
-    console.error('Error al obtener el token:', error);
+    console.error('Error al guardar token:', error);
     res.status(400).send('Error al autenticar con Spotify');
   }
 }
-
-// Exportamos para poder usarlos en otras rutas
-export { accessToken, refreshToken };
-

@@ -1,16 +1,19 @@
 import { createSpotifyApi } from '../spotify';
-import { accessToken, refreshToken } from './callback';
+import { db } from '../firebase';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  if (!accessToken) {
-    return res.status(401).send('No autorizado. Inicia sesión con Spotify.');
+  const doc = await db.collection('tokens').doc('spotify').get();
+  const data = doc.data();
+
+  if (!data?.accessToken) {
+    return res.status(401).send('❌ No autorizado. Inicia sesión con Spotify.');
   }
 
   const spotifyApi = createSpotifyApi();
-  spotifyApi.setAccessToken(accessToken);
-  spotifyApi.setRefreshToken(refreshToken);
+  spotifyApi.setAccessToken(data.accessToken);
+  spotifyApi.setRefreshToken(data.refreshToken);
 
   const { playlist } = req.body;
 
@@ -27,7 +30,7 @@ export default async function handler(req, res) {
       context_uri: playlist,
     });
 
-    res.status(200).send('Reproducción iniciada');
+    res.status(200).send('🎵 Reproducción iniciada');
   } catch (e) {
     console.error('Error al reproducir:', e);
     res.status(500).send('Error al reproducir música.');
