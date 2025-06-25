@@ -1,38 +1,85 @@
-import { createSpotifyApi } from '../spotify';
-import { db } from '../firebase';
+import { getValidSpotifyApi } from '../spotify.js';
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const doc = await db.collection('tokens').doc('spotify').get();
-  const data = doc.data();
-
-  if (!data?.accessToken) {
-    return res.status(401).send('❌ No autorizado. Inicia sesión con Spotify.');
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      error: 'Method not allowed',
+      message: 'Only POST requests are allowed' 
+    });
   }
 
-  const spotifyApi = createSpotifyApi();
-  spotifyApi.setAccessToken(data.accessToken);
-  spotifyApi.setRefreshToken(data.refreshToken);
-
-  const { playlist } = req.body;
-
   try {
-    const devices = await spotifyApi.getMyDevices();
-    const active = devices.body.devices.find(d => d.is_active);
+    const { playlist, trackUri } = req.body;
 
-    if (!active) {
-      return res.status(400).send('No hay dispositivo activo.');
+    if (!playlist && !trackUri) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Either playlist or trackUri is required'
+      });
     }
 
-    await spotifyApi.play({
-      device_id: active.id,
-      context_uri: playlist,
+    const spotifyApi = await getValidSpotifyApi();
+
+    // Obtener dispositivos disponibles
+    const devices = await spotifyApi.getMyDevices();
+    const activeDevice = devices.body.devices.find(d => d.is_active);
+
+    if (!activeDevice) {
+      return res.status(400).json({
+        error: 'No Active Device',
+        message: 'No hay dispositivo activo. Abre Spotify en tu teléfono o computadora.',
+        devices: devices.body.devices.map(d => ({ name: d.name, type: d.type }))
+      });
+    }
+
+    // Reproducir música
+    const playOptions = {
+      device_id: activeDevice.id,
+    };
+
+    if (playlist) {
+      playOptions.context_uri = playlist;
+    } else if (trackUri) {
+      playOptions.uris = [trackUri];
+    }
+
+    await spotifyApi.play(playOptions);
+
+    res.status(200).json({
+      success: true,
+      message: '🎵 Reproducción iniciada',
+      device: activeDevice.name
     });
 
-    res.status(200).send('🎵 Reproducción iniciada');
-  } catch (e) {
-    console.error('Error al reproducir:', e);
-    res.status(500).send('Error al reproducir música.');
+  } catch (error) {
+    console.error('Error al reproducir:', error);
+    
+    if (error.message.includes('No access token')) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: '❌ No autorizado. Inicia sesión con Spotify primero.',
+        needsLogin: true
+      });
+    }
+
+    if (error.statusCode === 403) {
+      return res.status(403).json({
+        error: 'Premium Required',
+        message: 'Se requiere Spotify Premium para controlar la reproducción.'
+      });
+    }
+
+    if (error.statusCode === 404) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Dispositivo no encontrado o playlist/track no válido.'
+      });
+    }
+
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Error al reproducir música.',
+      details: error.message
+    });
   }
 }
