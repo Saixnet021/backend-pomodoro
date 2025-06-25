@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
     res.json({ message: '✅ Tokens guardados correctamente en Firestore' });
   } catch (error) {
-    console.error('Error al guardar token:', error);
+    console.error('Error al autenticar con Spotify:', error);
     res.status(400).send('Error al autenticar con Spotify');
   }
 }
