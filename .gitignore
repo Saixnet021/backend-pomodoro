@@ -1,5 +1,5 @@
 # Evita subir configuraciones sensibles
-.env
+/.env/
 
 # Dependencias
 node_modules/
