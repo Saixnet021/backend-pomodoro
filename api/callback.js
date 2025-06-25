@@ -1,11 +1,18 @@
-import { createSpotifyApi } from '../spotify';
-import { db } from '../firebase';
+const { createSpotifyApi } = require('../spotify.js');
+const { db } = require('../firebase.js');
 
-export default async function handler(req, res) {
-  const code = req.query.code;
-  const spotifyApi = createSpotifyApi();
-
+module.exports = async function handler(req, res) {
   try {
+    const code = req.query.code;
+    
+    if (!code) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Authorization code is required'
+      });
+    }
+
+    const spotifyApi = createSpotifyApi();
     const data = await spotifyApi.authorizationCodeGrant(code);
     const accessToken = data.body.access_token;
     const refreshToken = data.body.refresh_token;
@@ -17,9 +24,15 @@ export default async function handler(req, res) {
       updatedAt: new Date().toISOString(),
     });
 
-    res.json({ message: '✅ Tokens guardados correctamente en Firestore' });
+    res.json({ 
+      success: true,
+      message: '✅ Tokens guardados correctamente en Firestore' 
+    });
   } catch (error) {
     console.error('Error al autenticar con Spotify:', error);
-    res.status(400).send('Error al autenticar con Spotify');
+    res.status(400).json({
+      error: 'Authentication Error',
+      message: 'Error al autenticar con Spotify: ' + error.message
+    });
   }
-}
+};

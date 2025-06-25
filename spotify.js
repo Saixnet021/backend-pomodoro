@@ -1,7 +1,11 @@
-import SpotifyWebApi from 'spotify-web-api-node';
-import { db } from './firebase.js';
+const SpotifyWebApi = require('spotify-web-api-node');
+const { db } = require('./firebase.js');
 
-export function createSpotifyApi() {
+function createSpotifyApi() {
+  if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET || !process.env.REDIRECT_URI) {
+    throw new Error('Missing required Spotify environment variables');
+  }
+  
   return new SpotifyWebApi({
     clientId: process.env.CLIENT_ID,
     clientSecret: process.env.CLIENT_SECRET,
@@ -9,7 +13,7 @@ export function createSpotifyApi() {
   });
 }
 
-export async function refreshSpotifyToken() {
+async function refreshSpotifyToken() {
   try {
     const doc = await db.collection('tokens').doc('spotify').get();
     const data = doc.data();
@@ -38,7 +42,7 @@ export async function refreshSpotifyToken() {
   }
 }
 
-export async function getValidSpotifyApi() {
+async function getValidSpotifyApi() {
   const doc = await db.collection('tokens').doc('spotify').get();
   const data = doc.data();
 
@@ -64,3 +68,9 @@ export async function getValidSpotifyApi() {
     throw error;
   }
 }
+
+module.exports = {
+  createSpotifyApi,
+  refreshSpotifyToken,
+  getValidSpotifyApi
+};

@@ -1,6 +1,15 @@
-import admin from 'firebase-admin';
+const admin = require('firebase-admin');
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is required');
+}
+
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+} catch (error) {
+  throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY format: ' + error.message);
+}
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -9,4 +18,8 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
-export { db };
+
+module.exports = {
+  db,
+  admin
+};
